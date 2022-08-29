@@ -1,6 +1,7 @@
 import React from 'react';
 import { useState } from 'react';
 import { getAuth, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { setDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase.config.js';
 
 import { Link, useNavigate } from 'react-router-dom';
@@ -37,7 +38,14 @@ function SigUp() {
       updateProfile(auth.currentUser, {
         displayName: name,
       });
-      navigate('/')
+
+      const formDataCopy = { ...formData };
+      delete formDataCopy.password;
+      formDataCopy.timestamp = serverTimestamp();
+
+      await setDoc(doc(db, 'users', user.uid), formDataCopy);
+
+      navigate('/');
     } catch (error) {
       console.log(error);
     }
