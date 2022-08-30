@@ -8,6 +8,7 @@ import Profile from './pages/Profile';
 import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
 import PrivateRoute from './components/PrivateRoute';
+import Category from './pages/Category';
 
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -18,6 +19,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Explore></Explore>}></Route>
           <Route path="/offers" element={<Offers></Offers>}></Route>
+          <Route path="/category/:categoryName" element={<Category></Category>}></Route>
           <Route path="/profile" element={<PrivateRoute />}>
             <Route path="/profile" element={<Profile></Profile>} />
           </Route>
