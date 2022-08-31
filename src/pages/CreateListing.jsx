@@ -6,6 +6,7 @@ import Spinner from '../components/Spinner';
 import { toast } from 'react-toastify';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { db } from '../firebase.config';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 
 function CreateListing() {
@@ -14,8 +15,8 @@ function CreateListing() {
   const [formData, setFormData] = useState({
     type: 'rent',
     name: '',
-    bedrooms: '',
-    bathrooms: '',
+    bedrooms: 1,
+    bathrooms: 1,
     parking: false,
     address: '',
     furnished: false,
@@ -47,6 +48,22 @@ function CreateListing() {
   const navigate = useNavigate();
   const isMounted = useRef(true);
 
+  useEffect(() => {
+    if (isMounted) {
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          setFormData({ ...formData, userRef: user.uid });
+        } else {
+          navigate('/sign-in');
+        }
+      });
+    }
+    return () => {
+      isMounted.current = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMounted]);
+
   const onSubmit = async (e) => {
     e.preventDefault();
 
@@ -76,12 +93,16 @@ function CreateListing() {
 
       geolocation.lat = data.results[0]?.geometry.location.lat ?? 0;
       geolocation.lng = data.results[0]?.geometry.location.lng ?? 0;
-      location = data.status === 'ZERO_RESULTS' ? undefined : data.results[0]?.formatted_address;
+
+      location =
+        data.status === 'ZERO_RESULTS'
+          ? undefined
+          : data.results[0]?.formatted_address;
 
       if (location === undefined || location.includes('undefined')) {
         setLoading(false);
         toast.error('please enter a correct address');
-        return
+        return;
       }
     } else {
       geolocation.lat = latitude;
@@ -118,6 +139,8 @@ function CreateListing() {
               case 'running':
                 console.log('Upload is running');
                 break;
+              default:
+                break;
             }
           },
           (error) => {
@@ -128,7 +151,7 @@ function CreateListing() {
             // Handle successful uploads on complete
             // For instance, get the download URL: https://firebasestorage.googleapis.com/...
             getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-              //console.log('File available at', downloadURL);
+              console.log('File available at', downloadURL);
               resolve(downloadURL);
             });
           },
@@ -136,19 +159,30 @@ function CreateListing() {
       });
     };
 
-    const imgUrls = await Promise.all(
-      [...images].map((image) => {
-        storeImage(image);
-      }),
-    ).catch(() => {
+    const imgUrls = await Promise.all([...images].map((image) => storeImage(image))).catch(() => {
       setLoading(false);
       toast.error('Image not uploaded');
-      return
+      return;
     });
 
-    console.log(imgUrls)
+    const formDataCopy = {
+      ...formData,
+      imgUrls,
+      geolocation,
+      timestamp: serverTimestamp(),
+    };
 
+    delete formDataCopy.images;
+    delete formDataCopy.address;
+    location && (formDataCopy.location = location);
+    !formDataCopy.offer && delete formDataCopy.discountedPrice;
+
+    console.log(formDataCopy);
+
+    const docRef = await addDoc(collection(db, 'listings'), formDataCopy);
     setLoading(false);
+    toast.success('Listing saved');
+    navigate(`/category/${formDataCopy.type}/${docRef.id}`);
   };
 
   const onMutate = (e) => {
@@ -174,21 +208,6 @@ function CreateListing() {
       });
     }
   };
-
-  useEffect(() => {
-    if (isMounted) {
-      onAuthStateChanged(auth, (user) => {
-        if (user) {
-          setFormData({ ...formData, userRef: user.uid });
-        } else {
-          navigate('/sign-in');
-        }
-      });
-    }
-    return () => {
-      isMounted.current = false;
-    };
-  }, [isMounted]);
 
   if (loading) {
     return <Spinner />;
