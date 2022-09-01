@@ -47,7 +47,7 @@ function Category() {
     };
 
     fetchListings();
-  }, []);
+  }, [params.categoryName]);
 
   // Load more
   const onFetchMoreListing = async () => {

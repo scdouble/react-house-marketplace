@@ -25,7 +25,7 @@ function Slider() {
       let listings = [];
       querySnap.forEach((doc) => {
         return listings.push({
-          id: doc.ic,
+          id: doc.id,
           data: doc.data(),
         });
       });
