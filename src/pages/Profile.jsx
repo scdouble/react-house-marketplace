@@ -91,7 +91,7 @@ function Profile() {
             />
             <input
               id="email"
-              type="text"
+              type="email"
               className={!changeDetails ? 'profileEmail' : 'profileEmailActive'}
               disabled={!changeDetails}
               value={email}
