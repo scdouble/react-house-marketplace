@@ -92,17 +92,20 @@ function Profile() {
   };
 
   const onDelete = async (listingId) => {
-    console.log(listingId)
+    console.log(listingId);
     if (window.confirm('Are you sure you want to DELETE ?')) {
       await deleteDoc(doc(db, 'listings', listingId));
-      const updatedListings = listings.filter(
-        (listing) => {
+      const updatedListings = listings.filter((listing) => {
         return listing.id !== listingId;
       });
       setListings(updatedListings);
       toast.success('Successfully Deleted');
     }
   };
+
+  const onEdit = (listingId) => {
+    navigate(`/edit-listing/${listingId}`)
+  }
   // useEffect(() => {
   //   setUser(auth.currentUser);
   // }, []);
@@ -169,6 +172,9 @@ function Profile() {
                     id={listing.id}
                     onDelete={() => {
                       onDelete(listing.id);
+                    }}
+                    onEdit={() => {
+                      onEdit(listing.id);
                     }}
                   />
                 );
