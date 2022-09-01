@@ -1,6 +1,6 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
-import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, limit, startAfter } from 'firebase/firestore';
 import { db } from '../firebase.config';
 import { toast } from 'react-toastify';
 import Spinner from '../components/Spinner';
@@ -11,6 +11,7 @@ function Category() {
   const [listings, setListings] = useState(null);
   const [loading, setLoading] = useState(true);
   const params = useParams();
+  const [lastFetchedListing, setLastFetchedListing] = useState(null);
 
   useEffect(() => {
     const fetchListings = async () => {
@@ -26,6 +27,9 @@ function Category() {
 
         // execute query
         const querySnap = await getDocs(q);
+
+        const lastVisible = querySnap.docs[querySnap.docs.length - 1];
+        setLastFetchedListing(lastVisible);
 
         let listings = [];
         querySnap.forEach((doc) => {
@@ -45,6 +49,39 @@ function Category() {
     fetchListings();
   }, []);
 
+  // Load more
+  const onFetchMoreListing = async () => {
+    try {
+      const listingRef = collection(db, 'listings');
+      // create a query
+      const q = query(
+        listingRef,
+        where('type', '==', params.categoryName),
+        orderBy('timestamp', 'desc'),
+        startAfter(lastFetchedListing),
+        limit(10),
+      );
+
+      // execute query
+      const querySnap = await getDocs(q);
+
+      const lastVisible = querySnap.docs[querySnap.docs.length - 1];
+      setLastFetchedListing(lastVisible);
+
+      let listings = [];
+      querySnap.forEach((doc) => {
+        return listings.push({
+          id: doc.id,
+          data: doc.data(),
+        });
+      });
+      setListings((prevState) => [...prevState, ...listings]);
+      setLoading(false);
+    } catch (error) {
+      console.log(error);
+      toast.error('Could not fetch listings');
+    }
+  };
   return (
     <div className="category">
       <header>
@@ -64,6 +101,14 @@ function Category() {
               })}
             </ul>
           </main>
+
+          <br />
+          <br />
+          {lastFetchedListing && (
+            <p className="loadMore" onClick={onFetchMoreListing}>
+              Load More
+            </p>
+          )}
         </>
       ) : (
         <p>No Listings for {params.categoryName}</p>
